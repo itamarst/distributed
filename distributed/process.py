@@ -69,6 +69,16 @@ class AsyncProcess:
         # for the assignment here.
         parent_alive_pipe, self._keep_child_alive = mp_context.Pipe(duplex=False)
 
+        # In order to get consistent hashing in subprocesses (a Dask
+        # requirement), we need to set a consistent seed for the Python hash
+        # algorithm. Unfortunatley, there is no way to specify environment
+        # variables only for the Process, so we have to rely on environment
+        # variables being inherited.
+        if os.environ.get("PYTHONHASHSEED") in (None, "0"):
+            # This number is arbitrary; it was chosen to commemorate
+            # https://github.com/dask/dask/issues/6640.
+            os.environ["PYTHONHASHSEED"] = "6640"
+
         self._process = mp_context.Process(
             target=self._run,
             name=name,
